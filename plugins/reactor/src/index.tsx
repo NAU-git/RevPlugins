@@ -22,16 +22,16 @@ let patches = [], lastBurst = 0, sT = null, fT = null, aID = null, activeType = 
 const gO = new Animated.Value(0), 
       P_COUNT = 30, 
       P_POOL = Array.from({ length: P_COUNT }, () => ({ 
-        x: Math.random() * SW, 
+        x: (Math.random() * 1.1 - 0.05) * SW, 
         s: 15 + Math.random() * 10, 
-        d: 1800 + Math.random() * 1800, // Confetti Speed
-        hd: 5500 + Math.random() * 2500, // Heart Speed
+        d: 1800 + Math.random() * 1800, 
+        hd: 5500 + Math.random() * 2500, 
         o: 0.6 + Math.random() * 0.4, 
         iD: Math.random() * 3000, 
         rS: Math.random() * 360, 
         rD: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720), 
-        hS: (Math.random() - 0.5) * 40,
-        hStep: 35 + Math.random() * 45
+        hS: (Math.random() - 0.5) * 60,
+        hStep: 40 + Math.random() * 50
       }));
 
 const ConfettiParticle = ({ i }) => {
@@ -113,8 +113,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2])));
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji));
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => {
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vV4")) {
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vV4" })];
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vVFinal")) {
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vVFinal" })];
             }
             return res;
         }));
