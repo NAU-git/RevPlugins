@@ -29,14 +29,15 @@ const gO = new Animated.Value(0),
         s: 15 + Math.random() * 10, 
         d: 1800 + Math.random() * 1800, 
         hd: 6000 + Math.random() * 2000,
-        sd: 1000 + Math.random() * 800, 
+        sd: 1000 + Math.random() * 500, 
         o: 0.7 + Math.random() * 0.3, 
         iD: Math.random() * 2500, 
         c: COLORS[Math.floor(Math.random() * COLORS.length)], 
         rS: Math.random() * 360, 
         rD: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720), 
         hS: (Math.random() - 0.5) * 40,
-        hStep: 45 + Math.random() * 55
+        hStep: 45 + Math.random() * 55,
+        starOff: (Math.random() * 100)
       }));
 
 const Particle = ({ i }) => { 
@@ -96,7 +97,7 @@ const StarParticle = ({ i }) => {
             if (!m) return;
             moveV.setValue(0); rotV.setValue(0);
             Animated.parallel([
-                Animated.timing(moveV, { toValue: 1, duration: d.sd, delay: dy, useNativeDriver: true, easing: Easing.out(Easing.quad) }),
+                Animated.timing(moveV, { toValue: 1, duration: d.sd, delay: dy, useNativeDriver: true, easing: Easing.linear }),
                 Animated.timing(rotV, { toValue: 1, duration: d.sd, delay: dy, useNativeDriver: true, easing: Easing.linear })
             ]).start(({ finished }) => { if (finished && m) r(0); });
         };
@@ -104,15 +105,14 @@ const StarParticle = ({ i }) => {
         return () => { m = false; moveV.stopAnimation(); rotV.stopAnimation(); };
     }, []);
 
-    const sX = (i % 5) * (SW / 5); // Spread spawn points along the top
-    const tX = moveV.interpolate({ inputRange: [0, 1], outputRange: [sX, SW + 100] }),
-          tY = moveV.interpolate({ inputRange: [0, 1], outputRange: [-50, SH + 100] }),
+    const tX = moveV.interpolate({ inputRange: [0, 1], outputRange: [d.starOff - 100, SW + 100] }),
+          tY = moveV.interpolate({ inputRange: [0, 1], outputRange: [d.starOff - 100, SH + 100] }),
           rot = rotV.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '720deg'] });
 
     return (
         <Animated.View style={{ position: "absolute", left: 0, top: 0, width: d.s * 3, height: d.s * 3, opacity: d.o, transform: [{ translateX: tX }, { translateY: tY }] }}>
+            <Image source={{ uri: IMG_TRAIL }} style={{ position: "absolute", left: -15, top: 0, width: '100%', height: '100%', transform: [{ rotate: '45deg' }] }} resizeMode="contain" />
             <Animated.Image source={{ uri: IMG_STAR }} style={{ width: '100%', height: '100%', transform: [{ rotate: rot }] }} resizeMode="contain" />
-            <Image source={{ uri: IMG_TRAIL }} style={{ position: "absolute", left: -10, top: -10, width: '100%', height: '100%', transform: [{ rotate: '45deg' }] }} resizeMode="contain" />
         </Animated.View>
     );
 };
@@ -130,8 +130,8 @@ const Overlay = () => {
     return (
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 999, opacity: gO }]}>
             {P_POOL.map((_, i) => {
-                if (activeType === "heart") return <HeartParticle key={i} i={i} />;
                 if (activeType === "shooting_star") return <StarParticle key={i} i={i} />;
+                if (activeType === "heart") return <HeartParticle key={i} i={i} />;
                 return <Particle key={i} i={i} />;
             })}
         </Animated.View>
@@ -161,8 +161,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFixedStars")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFixedStars" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vRev")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vRev" })]; 
             } 
             return res; 
         })); 
