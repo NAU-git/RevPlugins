@@ -29,7 +29,7 @@ const gO = new Animated.Value(0),
         s: 15 + Math.random() * 10, 
         d: 1800 + Math.random() * 1800, 
         hd: 6000 + Math.random() * 2000,
-        sd: 1000 + Math.random() * 500, 
+        sd: 1500 + Math.random() * 800, 
         o: 0.7 + Math.random() * 0.3, 
         iD: Math.random() * 2500, 
         c: COLORS[Math.floor(Math.random() * COLORS.length)], 
@@ -89,32 +89,39 @@ const HeartParticle = ({ i }) => {
 };
 
 const StarParticle = ({ i }) => {
-    const d = P_POOL[i], moveV = React.useRef(new Animated.Value(0)).current, rotV = React.useRef(new Animated.Value(0)).current;
+    const d = P_POOL[i], anim = React.useRef(new Animated.Value(0)).current;
     React.useEffect(() => {
         let m = true;
         const r = (dy = 0) => {
             if (!m) return;
-            moveV.setValue(0); rotV.setValue(0);
-            Animated.parallel([
-                Animated.timing(moveV, { toValue: 1, duration: d.sd, delay: dy, useNativeDriver: true, easing: Easing.linear }),
-                Animated.timing(rotV, { toValue: 1, duration: d.sd, delay: dy, useNativeDriver: true, easing: Easing.linear })
-            ]).start(({ finished }) => { if (finished && m) r(0); });
+            anim.setValue(0);
+            Animated.timing(anim, {
+                toValue: 1,
+                duration: d.sd + 800,
+                delay: dy,
+                useNativeDriver: true,
+                easing: Easing.bezier(0.2, 0.8, 0.4, 1),
+            }).start(({ finished }) => { if (finished && m) r(0); });
         };
         r(d.iD);
-        return () => { m = false; moveV.stopAnimation(); rotV.stopAnimation(); };
+        return () => { m = false; anim.stopAnimation(); };
     }, []);
 
-    const sX = (i % 6) * (SW / 4) - 50; 
-    const sY = (Math.floor(i / 6)) * -60 - 40;
+    const sX = (i % 5) * (SW / 4) - (SW / 8); 
+    const sY = (Math.floor(i / 5)) * 80 + (SH * 0.1);
 
-    const tX = moveV.interpolate({ inputRange: [0, 1], outputRange: [sX, SW + 150] }),
-          tY = moveV.interpolate({ inputRange: [0, 1], outputRange: [sY, SH + 150] }),
-          rot = rotV.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '720deg'] });
+    const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [sX, sX + (SW * 0.6)] });
+    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [sY, sY + (SH * 0.6)] });
+    const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
+    const opacity = anim.interpolate({
+        inputRange: [0, 0.2, 0.3, 0.8, 1],
+        outputRange: [0, 0, 1, 1, 0]
+    });
 
     return (
-        <Animated.View style={{ position: "absolute", left: 0, top: 0, width: d.s * 1.8, height: d.s * 1.8, opacity: d.o, transform: [{ translateX: tX }, { translateY: tY }] }}>
-            <Image source={{ uri: IMG_TRAIL }} style={{ position: "absolute", left: -10, top: 0, width: '100%', height: '100%', transform: [{ rotate: '45deg' }] }} resizeMode="contain" />
-            <Animated.Image source={{ uri: IMG_STAR }} style={{ width: '100%', height: '100%', tintColor: "#FFD700", transform: [{ rotate: rot }] }} resizeMode="contain" />
+        <Animated.View style={{ position: "absolute", left: 0, top: 0, width: d.s * 1.8, height: d.s * 1.8, opacity: opacity, transform: [{ translateX: tX }, { translateY: tY }] }}>
+            <Image source={{ uri: IMG_TRAIL }} style={{ position: "absolute", left: -10, top: 0, width: '100%', height: '100%', transform: [{ rotate: '90deg' }] }} resizeMode="contain" />
+            <Animated.Image source={{ uri: IMG_STAR }} style={{ width: '100%', height: '100%', tintColor: "#B8860B", transform: [{ rotate: rot }] }} resizeMode="contain" />
         </Animated.View>
     );
 };
@@ -163,8 +170,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vScaled")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vScaled" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFinal")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFinal" })]; 
             } 
             return res; 
         })); 
