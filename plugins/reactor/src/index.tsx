@@ -18,7 +18,7 @@ const COLORS = ["#D8B4FE", "#86EFAC", "#F9A8D4", "#93C5FD", "#FDE68A", "#F87171"
 
 const HEART_MAP = { "💚": "#22C55E", "💙": "#3B82F6", "🤍": "#FFFFFF", "🧡": "#F97316", "❤️": "#EF4444", "🖤": "#000000", "🤎": "#78350F", "💛": "#EAB308", "💜": "#A855F7" };
 const PARTY_EMOJIS = ["🎉", "🎊", "🪅", "🎂"];
-const STAR_EMOJIS = ["⭐️", "🌟", "✨"];
+const STAR_EMOJIS = ["⭐", "🌟", "✨", "🌠"];
 
 let patches = [], lastBurst = 0, sT = null, fT = null, aID = null, activeType = "party", activeColor = "#EF4444";
 
@@ -36,8 +36,7 @@ const gO = new Animated.Value(0),
         rS: Math.random() * 360, 
         rD: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720), 
         hS: (Math.random() - 0.5) * 40,
-        hStep: 45 + Math.random() * 55,
-        starOff: (Math.random() * 100)
+        hStep: 45 + Math.random() * 55
       }));
 
 const Particle = ({ i }) => { 
@@ -105,14 +104,17 @@ const StarParticle = ({ i }) => {
         return () => { m = false; moveV.stopAnimation(); rotV.stopAnimation(); };
     }, []);
 
-    const tX = moveV.interpolate({ inputRange: [0, 1], outputRange: [d.starOff - 100, SW + 100] }),
-          tY = moveV.interpolate({ inputRange: [0, 1], outputRange: [d.starOff - 100, SH + 100] }),
+    const sX = (i % 6) * (SW / 4) - 50; 
+    const sY = (Math.floor(i / 6)) * -60 - 40;
+
+    const tX = moveV.interpolate({ inputRange: [0, 1], outputRange: [sX, SW + 150] }),
+          tY = moveV.interpolate({ inputRange: [0, 1], outputRange: [sY, SH + 150] }),
           rot = rotV.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '720deg'] });
 
     return (
-        <Animated.View style={{ position: "absolute", left: 0, top: 0, width: d.s * 3, height: d.s * 3, opacity: d.o, transform: [{ translateX: tX }, { translateY: tY }] }}>
-            <Image source={{ uri: IMG_TRAIL }} style={{ position: "absolute", left: -15, top: 0, width: '100%', height: '100%', transform: [{ rotate: '45deg' }] }} resizeMode="contain" />
-            <Animated.Image source={{ uri: IMG_STAR }} style={{ width: '100%', height: '100%', transform: [{ rotate: rot }] }} resizeMode="contain" />
+        <Animated.View style={{ position: "absolute", left: 0, top: 0, width: d.s * 1.8, height: d.s * 1.8, opacity: d.o, transform: [{ translateX: tX }, { translateY: tY }] }}>
+            <Image source={{ uri: IMG_TRAIL }} style={{ position: "absolute", left: -10, top: 0, width: '100%', height: '100%', transform: [{ rotate: '45deg' }] }} resizeMode="contain" />
+            <Animated.Image source={{ uri: IMG_STAR }} style={{ width: '100%', height: '100%', tintColor: "#FFD700", transform: [{ rotate: rot }] }} resizeMode="contain" />
         </Animated.View>
     );
 };
@@ -161,8 +163,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vRev")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vRev" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vScaled")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vScaled" })]; 
             } 
             return res; 
         })); 
