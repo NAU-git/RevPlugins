@@ -5,44 +5,44 @@ import { findByProps, findByStoreName } from "@vendetta/metro";
 const { View, Animated, Dimensions, Easing, Image, StyleSheet } = ReactNative;
 const { width: SW, height: SH } = Dimensions.get("window");
 
-const SelectedChannelStore = findByStoreName("SelectedChannelStore");
-const MessageStore = findByProps("addReaction");
-const FluxDispatcher = findByProps("dispatch", "subscribe");
-const GeneralModule = findByProps("View");
+const SelectedChannelStore = findByStoreName("SelectedChannelStore"),
+      MessageStore = findByProps("addReaction"),
+      FluxDispatcher = findByProps("dispatch", "subscribe"),
+      GeneralModule = findByProps("View");
 
-const IMG_CON = "https://raw.githubusercontent.com/NAU-git/RevPlugins/refs/heads/master/plugins/reactor/src/particles/confetti.png";
-const IMG_HT = "https://raw.githubusercontent.com/NAU-git/RevPlugins/refs/heads/master/plugins/reactor/src/particles/heart.png";
+const IMG_CONFETTI = "https://raw.githubusercontent.com/NAU-git/RevPlugins/refs/heads/master/plugins/reactor/src/particles/confetti.png",
+      IMG_HEART = "https://raw.githubusercontent.com/NAU-git/RevPlugins/refs/heads/master/plugins/reactor/src/particles/heart.png";
 
-const P_COLORS = ["#D8B4FE", "#86EFAC", "#F9A8D4", "#93C5FD", "#FDE68A", "#F87171"];
-const P_EMOS = ["🎉", "🎊", "🪅", "🎂"];
-const H_MAP = { "💚": "#22C55E", "💙": "#3B82F6", "🤍": "#FFFFFF", "🧡": "#F97316", "❤️": "#EF4444", "🖤": "#000000", "🤎": "#78350F", "💛": "#EAB308", "💜": "#A855F7" };
+const PARTY_COLORS = ["#D8B4FE", "#86EFAC", "#F9A8D4", "#93C5FD", "#FDE68A", "#F87171"],
+      PARTY_EMOJIS = ["🎉", "🎊", "🪅", "🎂"],
+      HEART_MAP = { "💚": "#22C55E", "💙": "#3B82F6", "🤍": "#FFFFFF", "🧡": "#F97316", "❤️": "#EF4444", "🖤": "#000000", "🤎": "#78350F", "💛": "#EAB308", "💜": "#A855F7" };
 
-let patches = [], lastBurst = 0, sT = null, fT = null, aID = null, aType = "party", aCol = "#EF4444";
+let patches = [], lastBurst = 0, sT = null, fT = null, aID = null, activeType = "party", activeColor = "#EF4444";
 
-const gO = new Animated.Value(0);
-const P_COUNT = 30;
-const P_POOL = Array.from({ length: P_COUNT }, () => ({
-    x: Math.random() * SW,
-    s: 15 + Math.random() * 10,
-    d: 2500 + Math.random() * 1500,
-    o: 0.6 + Math.random() * 0.4,
-    iD: Math.random() * 2000,
-    rS: Math.random() * 360,
-    rD: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720),
-    hS: 30 + Math.random() * 40
-}));
+const gO = new Animated.Value(0), 
+      P_COUNT = 30, 
+      P_POOL = Array.from({ length: P_COUNT }, () => ({ 
+        x: Math.random() * SW, 
+        s: 15 + Math.random() * 10, 
+        d: 2500 + Math.random() * 1500, 
+        o: 0.6 + Math.random() * 0.4, 
+        iD: Math.random() * 3000, 
+        rS: Math.random() * 360, 
+        rD: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720), 
+        hS: 30 + Math.random() * 40 
+      }));
 
 const Particle = ({ i }) => {
-    const d = P_POOL[i];
-    const aV = React.useRef(new Animated.Value(0)).current;
-    const hV = React.useRef(new Animated.Value(0)).current;
-    const rV = React.useRef(new Animated.Value(0)).current;
+    const d = P_POOL[i], 
+          aV = React.useRef(new Animated.Value(0)).current, 
+          rV = React.useRef(new Animated.Value(0)).current, 
+          hV = React.useRef(new Animated.Value(0)).current;
 
     React.useEffect(() => {
         let m = true;
         const r = (dy = 0) => {
             if (!m) return;
-            aV.setValue(0); hV.setValue(0); rV.setValue(0);
+            aV.setValue(0); rV.setValue(0); hV.setValue(0);
             Animated.parallel([
                 Animated.timing(aV, { toValue: 1, duration: d.d, delay: dy, useNativeDriver: true, easing: Easing.linear }),
                 Animated.timing(rV, { toValue: 1, duration: d.d, delay: dy, useNativeDriver: true, easing: Easing.linear }),
@@ -53,10 +53,10 @@ const Particle = ({ i }) => {
             ]).start(({ finished }) => { if (finished && m) r(0); });
         };
         r(d.iD);
-        return () => { m = false; aV.stopAnimation(); hV.stopAnimation(); rV.stopAnimation(); };
+        return () => { m = false; aV.stopAnimation(); rV.stopAnimation(); hV.stopAnimation(); };
     }, []);
 
-    const isH = aType === "heart";
+    const isH = activeType === "heart";
     const tY = aV.interpolate({ inputRange: [0, 1], outputRange: [isH ? SH + 50 : -100, isH ? -100 : SH + 100] });
     const hX = hV.interpolate({ inputRange: [0, 1], outputRange: [0, d.hS] });
     const rot = rV.interpolate({ inputRange: [0, 1], outputRange: [`${d.rS}deg`, `${d.rS + (isH ? 0 : d.rD)}deg`] });
@@ -64,43 +64,52 @@ const Particle = ({ i }) => {
 
     return (
         <Animated.View style={{ position: "absolute", left: d.x, top: 0, width: d.s, height: d.s, opacity: isH ? opac : d.o, transform: [{ translateY: tY }, { translateX: hX }, { rotate: rot }] }}>
-            <Image source={{ uri: isH ? IMG_HT : IMG_CON }} style={{ width: '100%', height: '100%', tintColor: isH ? aCol : P_COLORS[i % P_COLORS.length] }} resizeMode="contain" />
+            <Image source={{ uri: isH ? IMG_HEART : IMG_CONFETTI }} style={{ width: '100%', height: '100%', tintColor: isH ? activeColor : PARTY_COLORS[i % PARTY_COLORS.length] }} resizeMode="contain" />
         </Animated.View>
     );
 };
 
 const Overlay = () => {
     const [, fU] = React.useReducer(x => x + 1, 0);
-    const cur = SelectedChannelStore?.getChannelId();
-    React.useEffect(() => { const i = setInterval(() => fU(), 250); return () => clearInterval(i); }, []);
-    
-    React.useEffect(() => {
-        if (cur !== aID && aID !== null) {
-            Animated.timing(gO, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => { aID = null; if (sT) clearTimeout(sT); if (fT) clearTimeout(fT); });
-        }
-    }, [cur]);
-
-    if (cur !== aID) return null;
-    return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 9999, opacity: gO }]}>{P_POOL.map((_, i) => <Particle key={`${aType}-${i}`} i={i} />)}</Animated.View>;
+    React.useEffect(() => { const i = setInterval(() => fU(), 500); return () => clearInterval(i); }, []);
+    if (SelectedChannelStore?.getChannelId() !== aID) return null;
+    return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 9999, opacity: gO }]}>{P_POOL.map((_, i) => <Particle key={i} i={i} />)}</Animated.View>;
 };
 
 const trigger = (cid, emo) => {
     const name = emo?.name || emo?.id;
-    if (!name || Date.now() - lastBurst < 4000) return;
-    if (H_MAP[name] || P_EMOS.includes(name)) {
+    if (!name || Date.now() - lastBurst < 5000) return;
+    if (HEART_MAP[name] || PARTY_EMOJIS.includes(name)) {
         lastBurst = Date.now();
         aID = cid;
-        aType = H_MAP[name] ? "heart" : "party";
-        if (H_MAP[name]) aCol = H_MAP[name];
+        activeType = HEART_MAP[name] ? "heart" : "party";
+        if (HEART_MAP[name]) activeColor = HEART_MAP[name];
         gO.setValue(1);
         if (sT) clearTimeout(sT); if (fT) clearTimeout(fT);
-        fT = setTimeout(() => Animated.timing(gO, { toValue: 0, duration: 1000, useNativeDriver: true, easing: Easing.linear }).start(), 4000);
+        fT = setTimeout(() => Animated.timing(gO, { toValue: 0, duration: 1000, useNativeDriver: true, easing: Easing.linear }).start(), 4350);
         sT = setTimeout(() => aID = null, 5500);
     }
 };
 
+const handleDispatch = (e) => { if (e.type === "MESSAGE_REACTION_ADD") trigger(e.channelId, e.emoji); };
+
 export default {
     onLoad: () => {
+        if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2])));
+        if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", handleDispatch);
+        if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => {
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFixed")) {
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFixed" })];
+            }
+            return res;
+        }));
+    },
+    onUnload: () => {
+        patches.forEach(p => p?.());
+        if (FluxDispatcher) FluxDispatcher.unsubscribe("MESSAGE_REACTION_ADD", handleDispatch);
+        clearTimeout(sT); clearTimeout(fT); aID = null;
+    }
+};
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2])));
         if (FluxDispatcher) {
             const cb = (e) => trigger(e.channelId, e.emoji);
