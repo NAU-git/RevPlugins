@@ -26,7 +26,7 @@ const gO = new Animated.Value(0),
       P_COUNT = 25, 
       P_POOL = Array.from({ length: P_COUNT }, (_, i) => ({ 
         x: (Math.random() * 1.1 - 0.05) * SW, 
-        s: 16 + Math.random() * 8, // Stars made a bit smaller
+        s: 16 + Math.random() * 8, 
         d: 2000 + Math.random() * 1500, 
         hd: 6000 + Math.random() * 2000,
         sd: 3400 + Math.random() * 800, 
@@ -38,8 +38,9 @@ const gO = new Animated.Value(0),
         hS: (Math.random() - 0.5) * 40,
         hStep: 45 + Math.random() * 55,
         spawnX: (Math.random() * 30) - 15, 
-        spawnY: (i / P_COUNT) * (SH * 0.85) - 50, // Evening out the spawn distribution
-        trailGap: 14 + Math.random() * 6 
+        spawnY: (i / P_COUNT) * (SH * 0.85) - 50,
+        // Gap is now a multiplier based on the star's specific size
+        gapMult: 0.9 + Math.random() * 0.4 
       }));
 
 const Particle = ({ i }) => { 
@@ -114,17 +115,20 @@ const StarParticle = ({ i }) => {
     const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [d.spawnY, d.spawnY + (SH * 0.45)] });
     const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '220deg'] });
 
-    // More gradual fade in (~340ms) and standard fade out
+    // Gradual fade in
     const starOpac = anim.interpolate({ 
         inputRange: [0, 0.1, 0.85, 1], 
         outputRange: [0, 1, 1, 0] 
     });
 
-    // Trail fades out 100ms early (approx 0.03 earlier in the 1.0 range)
+    // Trail fades out 200ms before star (approx 0.06 difference on anim scale)
     const trailOpac = anim.interpolate({ 
-        inputRange: [0, 0.1, 0.82, 0.85, 1], 
+        inputRange: [0, 0.1, 0.79, 0.82, 1], 
         outputRange: [0, 1, 1, 0, 0] 
     });
+
+    // Gap is now tied to d.s (size)
+    const dynamicGap = d.s * d.gapMult;
 
     return (
         <Animated.View style={{ 
@@ -139,8 +143,8 @@ const StarParticle = ({ i }) => {
                 source={{ uri: IMG_TRAIL }} 
                 style={{ 
                     position: "absolute", 
-                    left: -d.trailGap, 
-                    top: -d.trailGap, 
+                    left: -dynamicGap, 
+                    top: -dynamicGap, 
                     width: '100%', 
                     height: '100%', 
                     opacity: trailOpac,
@@ -207,8 +211,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vEvenSpawn")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vEvenSpawn" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vSizeProportional")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vSizeProportional" })]; 
             } 
             return res; 
         })); 
