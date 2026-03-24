@@ -23,13 +23,13 @@ const STAR_EMOJIS = ["⭐", "🌟", "✨", "🌠"];
 let patches = [], lastBurst = 0, sT = null, fT = null, aID = null, activeType = "party", activeColor = "#EF4444";
 
 const gO = new Animated.Value(0), 
-      P_COUNT = 25, 
+      P_COUNT = 20, 
       P_POOL = Array.from({ length: P_COUNT }, () => ({ 
         x: (Math.random() * 1.1 - 0.05) * SW, 
-        s: 14 + Math.random() * 8, 
+        s: 12 + Math.random() * 8, 
         d: 2000 + Math.random() * 1500, 
         hd: 6000 + Math.random() * 2000,
-        sd: 2400 + Math.random() * 600, 
+        sd: 2800 + Math.random() * 800, // Slower movement
         o: 0.8 + Math.random() * 0.2, 
         iD: Math.random() * 2000, 
         c: COLORS[Math.floor(Math.random() * COLORS.length)], 
@@ -37,9 +37,10 @@ const gO = new Animated.Value(0),
         rD: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720), 
         hS: (Math.random() - 0.5) * 40,
         hStep: 45 + Math.random() * 55,
-        // Unique offsets for the "red stripe" spawn area
-        offX: (Math.random() * 60) - 30,
-        offY: (Math.random() * 150) - 75
+        // Spawn strictly on the LEFT side (X: -20 to 20) and spread across Y
+        spawnX: (Math.random() * 40) - 20,
+        spawnY: (Math.random() * (SH * 0.8)) - 50,
+        trailGap: 8 + Math.random() * 6 // Spacing the trail away
       }));
 
 const Particle = ({ i }) => { 
@@ -103,24 +104,23 @@ const StarParticle = ({ i }) => {
                 duration: d.sd, 
                 delay: dy, 
                 useNativeDriver: true, 
-                easing: Easing.bezier(0.15, 1, 0.4, 1) 
+                easing: Easing.bezier(0.2, 0.9, 0.4, 1) 
             }).start(({ finished }) => { if (finished && m) r(0); });
         };
         r(d.iD);
         return () => { m = false; anim.stopAnimation(); };
     }, []);
 
-    // Uniform spawn from top-left (red stripe zone)
-    const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [d.offX, SW + 50] });
-    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [d.offY, SH + 50] });
+    // Streaking from the left side toward the right
+    const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [d.spawnX, SW + 100] });
+    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [d.spawnY, d.spawnY + (SH * 0.4)] });
     
-    // Slow star-only rotation
-    const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '120deg'] });
+    const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
 
-    // Fade in at 450ms (~0.2 into anim)
+    // Removed fade-in: starts at solid 1 opacity immediately
     const opac = anim.interpolate({ 
-        inputRange: [0, 0.18, 0.25, 0.85, 1], 
-        outputRange: [0, 0, 1, 1, 0] 
+        inputRange: [0, 0.8, 1], 
+        outputRange: [1, 1, 0] 
     });
 
     return (
@@ -128,17 +128,18 @@ const StarParticle = ({ i }) => {
             position: "absolute", 
             left: 0, 
             top: 0, 
-            width: d.s * 1.8, 
-            height: d.s * 1.8, 
+            width: d.s * 1.6, 
+            height: d.s * 1.6, 
             opacity: opac, 
             transform: [{ translateX: tX }, { translateY: tY }] 
         }}>
+            {/* Trail: Offset further away using trailGap and pointed CCW */}
             <Image 
                 source={{ uri: IMG_TRAIL }} 
                 style={{ 
                     position: "absolute", 
-                    left: -5, 
-                    top: -5, 
+                    left: -d.trailGap, 
+                    top: -d.trailGap, 
                     width: '100%', 
                     height: '100%', 
                     transform: [{ rotate: '-45deg' }] 
@@ -150,7 +151,7 @@ const StarParticle = ({ i }) => {
                 style={{ 
                     width: '100%', 
                     height: '100%', 
-                    tintColor: "#CC9900", 
+                    tintColor: "#DAA520", 
                     transform: [{ rotate: rot }] 
                 }} 
                 resizeMode="contain" 
@@ -203,8 +204,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFinalSync")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFinalSync" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vLeftSpawn")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vLeftSpawn" })]; 
             } 
             return res; 
         })); 
