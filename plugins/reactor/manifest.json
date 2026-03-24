@@ -1,0 +1,14 @@
+{
+    "name": "Reactor",
+    "description": "Better chat reactions",
+    "authors": [
+        {
+            "name": "Merb",
+            "id": "297161891817167"
+        }
+    ],
+    "main": "src/index.tsx",
+    "vendetta": {
+        "icon": "ic_add_super_reaction"
+    }
+}
