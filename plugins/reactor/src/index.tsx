@@ -22,16 +22,16 @@ let patches = [], lastBurst = 0, sT = null, fT = null, aID = null, activeType = 
 const gO = new Animated.Value(0), 
       P_COUNT = 30, 
       P_POOL = Array.from({ length: P_COUNT }, () => ({ 
-        x: (Math.random() * 1.1 - 0.05) * SW, 
+        x: Math.random() * SW, 
         s: 15 + Math.random() * 10, 
-        d: 1800 + Math.random() * 1800, 
-        hd: 5500 + Math.random() * 2500, 
+        d: 2000 + Math.random() * 1500, 
+        hd: 6500 + Math.random() * 2500, 
         o: 0.6 + Math.random() * 0.4, 
         iD: Math.random() * 3000, 
         rS: Math.random() * 360, 
         rD: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720), 
-        hS: (Math.random() - 0.5) * 60,
-        hStep: 40 + Math.random() * 50
+        hS: 30 + Math.random() * 30, // Confetti sway width
+        hStep: 45 + Math.random() * 55 // Heart snake width
       }));
 
 const ConfettiParticle = ({ i }) => {
@@ -45,15 +45,18 @@ const ConfettiParticle = ({ i }) => {
                 Animated.timing(aV, { toValue: SH + 100, duration: d.d, delay: dy, useNativeDriver: true, easing: Easing.linear }),
                 Animated.timing(rV, { toValue: 1, duration: d.d, delay: dy, useNativeDriver: true, easing: Easing.linear }),
                 Animated.sequence([
-                    Animated.timing(hV, { toValue: 1, duration: d.d / 2, delay: dy, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
-                    Animated.timing(hV, { toValue: 0, duration: d.d / 2, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })
+                    Animated.timing(hV, { toValue: 1, duration: d.d / 4, delay: dy, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+                    Animated.timing(hV, { toValue: -1, duration: d.d / 2, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+                    Animated.timing(hV, { toValue: 0, duration: d.d / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })
                 ])
             ]).start(({ finished }) => { if (finished && m) r(0); });
         };
         r(d.iD);
         return () => { m = false; aV.stopAnimation(); rV.stopAnimation(); hV.stopAnimation(); };
     }, []);
-    const rot = rV.interpolate({ inputRange: [0, 1], outputRange: [`${d.rS}deg`, `${d.rS + d.rD}deg`] }), hX = hV.interpolate({ inputRange: [0, 1], outputRange: [0, d.hS] });
+    // hX now interpolates from -d.hS to d.hS to center the flow
+    const rot = rV.interpolate({ inputRange: [0, 1], outputRange: [`${d.rS}deg`, `${d.rS + d.rD}deg`] }), 
+          hX = hV.interpolate({ inputRange: [-1, 1], outputRange: [-d.hS, d.hS] });
     return <Animated.View style={{ position: "absolute", left: d.x, top: 0, width: d.s, height: d.s, opacity: d.o, transform: [{ translateY: aV }, { translateX: hX }, { rotate: rot }] }}><Image source={{ uri: IMG_CONFETTI }} style={{ width: '100%', height: '100%', tintColor: PARTY_COLORS[i % PARTY_COLORS.length] }} resizeMode="contain" /></Animated.View>;
 };
 
@@ -66,17 +69,21 @@ const HeartParticle = ({ i }) => {
             aV.setValue(SH + 50); hV.setValue(0);
             Animated.parallel([
                 Animated.timing(aV, { toValue: -150, duration: d.hd, delay: dy, useNativeDriver: true, easing: Easing.out(Easing.quad) }),
+                // More stages in the sequence = more snaking
                 Animated.sequence([
-                    Animated.timing(hV, { toValue: 1, duration: d.hd / 4, delay: dy, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
-                    Animated.timing(hV, { toValue: -1, duration: d.hd / 2, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
-                    Animated.timing(hV, { toValue: 0, duration: d.hd / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })
+                    Animated.timing(hV, { toValue: 1, duration: d.hd / 8, delay: dy, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+                    Animated.timing(hV, { toValue: -1, duration: d.hd / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+                    Animated.timing(hV, { toValue: 1, duration: d.hd / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+                    Animated.timing(hV, { toValue: -1, duration: d.hd / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+                    Animated.timing(hV, { toValue: 0, duration: d.hd / 8, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })
                 ])
             ]).start(({ finished }) => { if (finished && m) r(0); });
         };
         r(d.iD);
         return () => { m = false; aV.stopAnimation(); hV.stopAnimation(); };
     }, []);
-    const hX = hV.interpolate({ inputRange: [-1, 1], outputRange: [-d.hStep, d.hStep] }), opac = aV.interpolate({ inputRange: [-100, 50, SH - 50, SH + 50], outputRange: [0, d.o, d.o, 0] });
+    const hX = hV.interpolate({ inputRange: [-1, 1], outputRange: [-d.hStep, d.hStep] }), 
+          opac = aV.interpolate({ inputRange: [-100, 50, SH - 50, SH + 50], outputRange: [0, d.o, d.o, 0] });
     return <Animated.View style={{ position: "absolute", left: d.x, top: 0, width: d.s, height: d.s, opacity: opac, transform: [{ translateY: aV }, { translateX: hX }] }}><Image source={{ uri: IMG_HEART }} style={{ width: '100%', height: '100%', tintColor: activeColor }} resizeMode="contain" /></Animated.View>;
 };
 
@@ -103,8 +110,8 @@ const trigger = (cid, emo) => {
         if (HEART_MAP[name]) activeColor = HEART_MAP[name];
         gO.setValue(1);
         if (sT) clearTimeout(sT); if (fT) clearTimeout(fT);
-        fT = setTimeout(() => Animated.timing(gO, { toValue: 0, duration: 1500, useNativeDriver: true, easing: Easing.linear }).start(), 5000);
-        sT = setTimeout(() => aID = null, 7000);
+        fT = setTimeout(() => Animated.timing(gO, { toValue: 0, duration: 1500, useNativeDriver: true, easing: Easing.linear }).start(), 5500);
+        sT = setTimeout(() => aID = null, 7500);
     }
 };
 
@@ -113,8 +120,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2])));
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji));
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => {
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vVFinal")) {
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vVFinal" })];
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vV5")) {
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vV5" })];
             }
             return res;
         }));
