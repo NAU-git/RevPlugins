@@ -22,7 +22,7 @@ let patches = [], lastBurst = 0, sT = null, fT = null, aID = null, activeType = 
 const gO = new Animated.Value(0), 
       P_COUNT = 30, 
       P_POOL = Array.from({ length: P_COUNT }, () => ({ 
-        x: (Math.random() * 1.1 - 0.05) * SW, // Wider spawn to fill the left gap
+        x: (Math.random() * 1.1 - 0.05) * SW, 
         s: 15 + Math.random() * 10, 
         d: 1800 + Math.random() * 1800, 
         hd: 6000 + Math.random() * 2000, 
@@ -53,7 +53,6 @@ const ConfettiParticle = ({ i }) => {
         r(d.iD);
         return () => { m = false; aV.stopAnimation(); rV.stopAnimation(); hV.stopAnimation(); };
     }, []);
-    // Centering the flow by interpolating from -d.hS to d.hS
     const rot = rV.interpolate({ inputRange: [0, 1], outputRange: [`${d.rS}deg`, `${d.rS + d.rD}deg`] }), 
           hX = hV.interpolate({ inputRange: [0, 1], outputRange: [-d.hS, d.hS] });
     return <Animated.View style={{ position: "absolute", left: d.x, top: 0, width: d.s, height: d.s, opacity: d.o, transform: [{ translateY: aV }, { translateX: hX }, { rotate: rot }] }}><Image source={{ uri: IMG_CONFETTI }} style={{ width: '100%', height: '100%', tintColor: COLORS[i % COLORS.length] }} resizeMode="contain" /></Animated.View>;
@@ -118,40 +117,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2])));
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji));
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => {
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFixed")) {
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFixed" })];
-            }
-            return res;
-        }));
-    },
-    onUnload: () => {
-        patches.forEach(p => p?.());
-        clearTimeout(sT); clearTimeout(fT); aID = null;
-    }
-};
-
-const trigger = (cid, emo) => {
-    const name = emo?.name || emo?.id;
-    if (!name || Date.now() - lastBurst < 4000) return;
-    if (HEART_MAP[name] || PARTY_EMOJIS.includes(name)) {
-        lastBurst = Date.now();
-        aID = cid;
-        activeType = HEART_MAP[name] ? "heart" : "party";
-        if (HEART_MAP[name]) activeColor = HEART_MAP[name];
-        gO.setValue(1);
-        if (sT) clearTimeout(sT); if (fT) clearTimeout(fT);
-        fT = setTimeout(() => Animated.timing(gO, { toValue: 0, duration: 1500, useNativeDriver: true, easing: Easing.linear }).start(), 5000);
-        sT = setTimeout(() => aID = null, 7000);
-    }
-};
-
-export default {
-    onLoad: () => {
-        if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2])));
-        if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji));
-        if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => {
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-centered")) {
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-centered" })];
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-final")) {
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-final" })];
             }
             return res;
         }));
