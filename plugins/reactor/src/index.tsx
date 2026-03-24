@@ -125,11 +125,12 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFixOffset")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFixOffset" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFinalMerge")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFinalMerge" })]; 
             } 
             return res; 
         })); 
     }, 
     onUnload: () => { patches.forEach(p => p?.()); clearTimeout(sT); clearTimeout(fT); aID = null; } 
 };
+
