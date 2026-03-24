@@ -97,7 +97,7 @@ const StarParticle = ({ i }) => {
             anim.setValue(0);
             Animated.timing(anim, {
                 toValue: 1,
-                duration: d.sd + 800,
+                duration: d.sd + 1000,
                 delay: dy,
                 useNativeDriver: true,
                 easing: Easing.bezier(0.2, 0.8, 0.4, 1),
@@ -107,20 +107,23 @@ const StarParticle = ({ i }) => {
         return () => { m = false; anim.stopAnimation(); };
     }, []);
 
-    const sX = (i % 5) * (SW / 4) - (SW / 8); 
-    const sY = (Math.floor(i / 5)) * 80 + (SH * 0.1);
+    // Cluster spawn top-left
+    const sX = (i % 4) * 40 - 20; 
+    const sY = (Math.floor(i / 4)) * 40 - 20;
 
-    const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [sX, sX + (SW * 0.6)] });
-    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [sY, sY + (SH * 0.6)] });
-    const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
+    const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [sX, sX + (SW * 0.8)] });
+    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [sY, sY + (SH * 0.5)] });
+    const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '90deg'] });
     const opacity = anim.interpolate({
-        inputRange: [0, 0.2, 0.3, 0.8, 1],
+        inputRange: [0, 0.15, 0.25, 0.8, 1],
         outputRange: [0, 0, 1, 1, 0]
     });
 
     return (
         <Animated.View style={{ position: "absolute", left: 0, top: 0, width: d.s * 1.8, height: d.s * 1.8, opacity: opacity, transform: [{ translateX: tX }, { translateY: tY }] }}>
-            <Image source={{ uri: IMG_TRAIL }} style={{ position: "absolute", left: -10, top: 0, width: '100%', height: '100%', transform: [{ rotate: '90deg' }] }} resizeMode="contain" />
+            {/* Trail: Offset -5,-5 (top-left) and rotated to point back to origin */}
+            <Image source={{ uri: IMG_TRAIL }} style={{ position: "absolute", left: -5, top: -5, width: '100%', height: '100%', transform: [{ rotate: '-135deg' }] }} resizeMode="contain" />
+            {/* Star: Dark Gold tint with slow rotation */}
             <Animated.Image source={{ uri: IMG_STAR }} style={{ width: '100%', height: '100%', tintColor: "#B8860B", transform: [{ rotate: rot }] }} resizeMode="contain" />
         </Animated.View>
     );
@@ -170,8 +173,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFinal")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFinal" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFixedTrail")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFixedTrail" })]; 
             } 
             return res; 
         })); 
