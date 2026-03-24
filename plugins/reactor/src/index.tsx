@@ -107,21 +107,9 @@ export default {
     onUnload: () => {
         patches.forEach(p => p?.());
         if (FluxDispatcher) FluxDispatcher.unsubscribe("MESSAGE_REACTION_ADD", handleDispatch);
-        clearTimeout(sT); clearTimeout(fT); aID = null;
+        clearTimeout(sT); 
+        clearTimeout(fT); 
+        aID = null; 
+        gO.setValue(0);
     }
-};
-        if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2])));
-        if (FluxDispatcher) {
-            const cb = (e) => trigger(e.channelId, e.emoji);
-            FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", cb);
-            patches.push(() => FluxDispatcher.unsubscribe("MESSAGE_REACTION_ADD", cb));
-        }
-        if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => {
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-v99")) {
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-v99" })];
-            }
-            return res;
-        }));
-    },
-    onUnload: () => { patches.forEach(p => p?.()); clearTimeout(sT); clearTimeout(fT); aID = null; gO.setValue(0); }
 };
