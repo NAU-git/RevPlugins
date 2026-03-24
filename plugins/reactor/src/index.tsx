@@ -24,12 +24,14 @@ const gO = new Animated.Value(0),
       P_POOL = Array.from({ length: P_COUNT }, () => ({ 
         x: Math.random() * SW, 
         s: 15 + Math.random() * 10, 
-        d: 2500 + Math.random() * 1500, 
+        d: 2000 + Math.random() * 1500, // Duration
+        hd: 4000 + Math.random() * 3000, // Slower Heart Duration
         o: 0.6 + Math.random() * 0.4, 
         iD: Math.random() * 3000, 
         rS: Math.random() * 360, 
         rD: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720), 
-        hS: 30 + Math.random() * 40 
+        hS: 40 + Math.random() * 50, // Sway width
+        hF: 800 + Math.random() * 600 // Snake frequency
       }));
 
 const Particle = ({ i }) => {
@@ -40,27 +42,49 @@ const Particle = ({ i }) => {
 
     React.useEffect(() => {
         let m = true;
-        const r = (dy = 0) => {
+        const isH = activeType === "heart";
+        const dur = isH ? d.hd : d.d;
+
+        const run = (dy = 0) => {
             if (!m) return;
             aV.setValue(0); rV.setValue(0); hV.setValue(0);
-            Animated.parallel([
-                Animated.timing(aV, { toValue: 1, duration: d.d, delay: dy, useNativeDriver: true, easing: Easing.linear }),
-                Animated.timing(rV, { toValue: 1, duration: d.d, delay: dy, useNativeDriver: true, easing: Easing.linear }),
-                Animated.sequence([
-                    Animated.timing(hV, { toValue: 1, duration: d.d / 2, delay: dy, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
-                    Animated.timing(hV, { toValue: 0, duration: d.d / 2, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })
-                ])
-            ]).start(({ finished }) => { if (finished && m) r(0); });
+
+            const anims = [
+                Animated.timing(aV, { toValue: 1, duration: dur, delay: dy, useNativeDriver: true, easing: Easing.linear }),
+                Animated.timing(rV, { toValue: 1, duration: dur, delay: dy, useNativeDriver: true, easing: Easing.linear })
+            ];
+
+            if (isH) {
+                // Multi-stage snaking for hearts
+                anims.push(
+                    Animated.loop(
+                        Animated.sequence([
+                            Animated.timing(hV, { toValue: 1, duration: d.hF, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+                            Animated.timing(hV, { toValue: -1, duration: d.hF, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })
+                        ])
+                    )
+                );
+            } else {
+                // Original confetti sway
+                anims.push(
+                    Animated.sequence([
+                        Animated.timing(hV, { toValue: 1, duration: dur / 2, delay: dy, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+                        Animated.timing(hV, { toValue: 0, duration: dur / 2, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })
+                    ])
+                );
+            }
+
+            Animated.parallel(anims).start(({ finished }) => { if (finished && m) run(0); });
         };
-        r(d.iD);
+        run(d.iD);
         return () => { m = false; aV.stopAnimation(); rV.stopAnimation(); hV.stopAnimation(); };
     }, []);
 
     const isH = activeType === "heart";
     const tY = aV.interpolate({ inputRange: [0, 1], outputRange: [isH ? SH + 50 : -100, isH ? -100 : SH + 100] });
-    const hX = hV.interpolate({ inputRange: [0, 1], outputRange: [0, d.hS] });
+    const hX = hV.interpolate({ inputRange: [-1, 1], outputRange: [-d.hS, d.hS] });
     const rot = rV.interpolate({ inputRange: [0, 1], outputRange: [`${d.rS}deg`, `${d.rS + (isH ? 0 : d.rD)}deg`] });
-    const opac = aV.interpolate({ inputRange: [0, 0.1, 0.9, 1], outputRange: [0, d.o, d.o, 0] });
+    const opac = aV.interpolate({ inputRange: [0, 0.1, 0.85, 1], outputRange: [0, d.o, d.o, 0] });
 
     return (
         <Animated.View style={{ position: "absolute", left: d.x, top: 0, width: d.s, height: d.s, opacity: isH ? opac : d.o, transform: [{ translateY: tY }, { translateX: hX }, { rotate: rot }] }}>
@@ -71,14 +95,24 @@ const Particle = ({ i }) => {
 
 const Overlay = () => {
     const [, fU] = React.useReducer(x => x + 1, 0);
+    const cid = SelectedChannelStore?.getChannelId();
     React.useEffect(() => { const i = setInterval(() => fU(), 500); return () => clearInterval(i); }, []);
-    if (SelectedChannelStore?.getChannelId() !== aID) return null;
-    return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 9999, opacity: gO }]}>{P_POOL.map((_, i) => <Particle key={i} i={i} />)}</Animated.View>;
+    
+    React.useEffect(() => {
+        if (cid !== aID && aID !== null) {
+            Animated.timing(gO, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
+                aID = null; if (sT) clearTimeout(sT); if (fT) clearTimeout(fT);
+            });
+        }
+    }, [cid]);
+
+    if (cid !== aID) return null;
+    return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 9999, opacity: gO }]}>{P_POOL.map((_, i) => <Particle key={`${activeType}-${i}`} i={i} />)}</Animated.View>;
 };
 
 const trigger = (cid, emo) => {
     const name = emo?.name || emo?.id;
-    if (!name || Date.now() - lastBurst < 5000) return;
+    if (!name || Date.now() - lastBurst < 4000) return;
     if (HEART_MAP[name] || PARTY_EMOJIS.includes(name)) {
         lastBurst = Date.now();
         aID = cid;
@@ -86,17 +120,15 @@ const trigger = (cid, emo) => {
         if (HEART_MAP[name]) activeColor = HEART_MAP[name];
         gO.setValue(1);
         if (sT) clearTimeout(sT); if (fT) clearTimeout(fT);
-        fT = setTimeout(() => Animated.timing(gO, { toValue: 0, duration: 1000, useNativeDriver: true, easing: Easing.linear }).start(), 4350);
-        sT = setTimeout(() => aID = null, 5500);
+        fT = setTimeout(() => Animated.timing(gO, { toValue: 0, duration: 1000, useNativeDriver: true, easing: Easing.linear }).start(), 4500);
+        sT = setTimeout(() => aID = null, 6000);
     }
 };
-
-const handleDispatch = (e) => { if (e.type === "MESSAGE_REACTION_ADD") trigger(e.channelId, e.emoji); };
 
 export default {
     onLoad: () => {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2])));
-        if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", handleDispatch);
+        if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji));
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => {
             if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFixed")) {
                 res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFixed" })];
@@ -106,10 +138,6 @@ export default {
     },
     onUnload: () => {
         patches.forEach(p => p?.());
-        if (FluxDispatcher) FluxDispatcher.unsubscribe("MESSAGE_REACTION_ADD", handleDispatch);
-        clearTimeout(sT); 
-        clearTimeout(fT); 
-        aID = null; 
-        gO.setValue(0);
+        clearTimeout(sT); clearTimeout(fT); aID = null;
     }
 };
