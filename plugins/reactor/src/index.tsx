@@ -29,7 +29,7 @@ const gO = new Animated.Value(0),
         s: 14 + Math.random() * 8, 
         d: 2000 + Math.random() * 1500, 
         hd: 6000 + Math.random() * 2000,
-        sd: 2200 + Math.random() * 600, // Slower base speed
+        sd: 2400 + Math.random() * 600, 
         o: 0.8 + Math.random() * 0.2, 
         iD: Math.random() * 2000, 
         c: COLORS[Math.floor(Math.random() * COLORS.length)], 
@@ -100,25 +100,24 @@ const StarParticle = ({ i }) => {
                 duration: d.sd, 
                 delay: dy, 
                 useNativeDriver: true, 
-                easing: Easing.bezier(0.15, 1, 0.4, 1) // Throttle: Snappy start, weighted glide
+                easing: Easing.bezier(0.15, 1, 0.4, 1) 
             }).start(({ finished }) => { if (finished && m) r(0); });
         };
         r(d.iD);
         return () => { m = false; anim.stopAnimation(); };
     }, []);
 
-    // Spread spawn across the top-left area (approx 40% of screen width)
-    const sX = (i % 5) * (SW * 0.08) - 30; 
-    const sY = (Math.floor(i / 5)) * 45 - 60;
+    // Widened spawn: Using up to 80% of screen width (left-to-right)
+    const sX = (i % 8) * (SW * 0.1) - 40; 
+    const sY = (Math.floor(i / 8)) * 50 - 80;
 
-    // Travel path: Diagonal stretch
-    const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [sX, sX + (SW * 0.75)] });
-    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [sY, sY + (SH * 0.45)] });
+    const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [sX, sX + (SW * 0.85)] });
+    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [sY, sY + (SH * 0.55)] });
     
-    // Slow spin
+    // Slow star-only rotation
     const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '120deg'] });
 
-    // Fade in at 450ms (~0.2 into a 2.2s anim)
+    // Fade timing: invisible -> fade in at ~450ms -> solid -> fade out
     const opac = anim.interpolate({ 
         inputRange: [0, 0.18, 0.25, 0.85, 1], 
         outputRange: [0, 0, 1, 1, 0] 
@@ -134,16 +133,28 @@ const StarParticle = ({ i }) => {
             opacity: opac, 
             transform: [{ translateX: tX }, { translateY: tY }] 
         }}>
-            {/* Trail: Points to top-left (-135deg), offset -5px up/left */}
+            {/* Trail pointed to Top-Left (-135deg), offset -5px */}
             <Image 
                 source={{ uri: IMG_TRAIL }} 
-                style={{ position: "absolute", left: -5, top: -5, width: '100%', height: '100%', transform: [{ rotate: '-135deg' }] }} 
+                style={{ 
+                    position: "absolute", 
+                    left: -5, 
+                    top: -5, 
+                    width: '100%', 
+                    height: '100%', 
+                    transform: [{ rotate: '-135deg' }] 
+                }} 
                 resizeMode="contain" 
             />
-            {/* Star: Darker Gold tint */}
+            {/* Star with gold tint */}
             <Animated.Image 
                 source={{ uri: IMG_STAR }} 
-                style={{ width: '100%', height: '100%', tintColor: "#CC9900", transform: [{ rotate: rot }] }} 
+                style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    tintColor: "#CC9900", 
+                    transform: [{ rotate: rot }] 
+                }} 
                 resizeMode="contain" 
             />
         </Animated.View>
@@ -194,8 +205,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vMeteor")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vMeteor" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vMeteorWide")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vMeteorWide" })]; 
             } 
             return res; 
         })); 
@@ -205,3 +216,4 @@ export default {
         clearTimeout(sT); clearTimeout(fT); aID = null; 
     } 
 };
+
