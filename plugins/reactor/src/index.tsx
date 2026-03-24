@@ -26,20 +26,20 @@ const gO = new Animated.Value(0),
       P_COUNT = 25, 
       P_POOL = Array.from({ length: P_COUNT }, (_, i) => ({ 
         x: (Math.random() * 1.1 - 0.05) * SW, 
-        s: 18 + Math.random() * 10, // Reverted to original larger size
+        s: 16 + Math.random() * 8, // Stars made a bit smaller
         d: 2000 + Math.random() * 1500, 
         hd: 6000 + Math.random() * 2000,
-        sd: 3200 + Math.random() * 1000, // Slower movement
+        sd: 3400 + Math.random() * 800, 
         o: 0.8 + Math.random() * 0.2, 
-        iD: i * 180 + Math.random() * 400, // Fixed batching: staggered delays
+        iD: i * 220 + Math.random() * 300, 
         c: COLORS[Math.floor(Math.random() * COLORS.length)], 
         rS: Math.random() * 360, 
         rD: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720), 
         hS: (Math.random() - 0.5) * 40,
         hStep: 45 + Math.random() * 55,
-        spawnX: (Math.random() * 30) - 15, // Left edge
-        spawnY: (Math.random() * SH) - 100,
-        trailGap: 12 + Math.random() * 8 // Increased spacing
+        spawnX: (Math.random() * 30) - 15, 
+        spawnY: (i / P_COUNT) * (SH * 0.85) - 50, // Evening out the spawn distribution
+        trailGap: 14 + Math.random() * 6 
       }));
 
 const Particle = ({ i }) => { 
@@ -111,13 +111,19 @@ const StarParticle = ({ i }) => {
     }, []);
 
     const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [d.spawnX, SW + 100] });
-    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [d.spawnY, d.spawnY + (SH * 0.5)] });
-    const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '240deg'] });
+    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [d.spawnY, d.spawnY + (SH * 0.45)] });
+    const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '220deg'] });
 
-    // Quick fade in re-added
-    const opac = anim.interpolate({ 
-        inputRange: [0, 0.05, 0.85, 1], 
+    // More gradual fade in (~340ms) and standard fade out
+    const starOpac = anim.interpolate({ 
+        inputRange: [0, 0.1, 0.85, 1], 
         outputRange: [0, 1, 1, 0] 
+    });
+
+    // Trail fades out 100ms early (approx 0.03 earlier in the 1.0 range)
+    const trailOpac = anim.interpolate({ 
+        inputRange: [0, 0.1, 0.82, 0.85, 1], 
+        outputRange: [0, 1, 1, 0, 0] 
     });
 
     return (
@@ -125,12 +131,11 @@ const StarParticle = ({ i }) => {
             position: "absolute", 
             left: 0, 
             top: 0, 
-            width: d.s * 2, 
-            height: d.s * 2, 
-            opacity: opac, 
+            width: d.s * 1.8, 
+            height: d.s * 1.8, 
             transform: [{ translateX: tX }, { translateY: tY }] 
         }}>
-            <Image 
+            <Animated.Image 
                 source={{ uri: IMG_TRAIL }} 
                 style={{ 
                     position: "absolute", 
@@ -138,6 +143,7 @@ const StarParticle = ({ i }) => {
                     top: -d.trailGap, 
                     width: '100%', 
                     height: '100%', 
+                    opacity: trailOpac,
                     transform: [{ rotate: '-45deg' }] 
                 }} 
                 resizeMode="contain" 
@@ -148,6 +154,7 @@ const StarParticle = ({ i }) => {
                     width: '100%', 
                     height: '100%', 
                     tintColor: "#EAB308", 
+                    opacity: starOpac,
                     transform: [{ rotate: rot }] 
                 }} 
                 resizeMode="contain" 
@@ -191,7 +198,7 @@ const trigger = (cid, emo) => {
         gO.setValue(1); 
         if (sT) clearTimeout(sT); if (fT) clearTimeout(fT); 
         fT = setTimeout(() => Animated.timing(gO, { toValue: 0, duration: 1000, useNativeDriver: true, easing: Easing.linear }).start(), 4350); 
-        sT = setTimeout(() => aID = null, 7000); 
+        sT = setTimeout(() => aID = null, 8000); 
     }
 }; 
 
@@ -200,8 +207,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vStaggered")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vStaggered" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vEvenSpawn")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vEvenSpawn" })]; 
             } 
             return res; 
         })); 
