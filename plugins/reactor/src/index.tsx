@@ -36,7 +36,10 @@ const gO = new Animated.Value(0),
         rS: Math.random() * 360, 
         rD: (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720), 
         hS: (Math.random() - 0.5) * 40,
-        hStep: 45 + Math.random() * 55
+        hStep: 45 + Math.random() * 55,
+        // Unique offsets for the "red stripe" spawn area
+        offX: (Math.random() * 60) - 30,
+        offY: (Math.random() * 150) - 75
       }));
 
 const Particle = ({ i }) => { 
@@ -107,21 +110,14 @@ const StarParticle = ({ i }) => {
         return () => { m = false; anim.stopAnimation(); };
     }, []);
 
-    // --- NEW Spawn & Trajectory logic based on the red stripe in image_21.png ---
-
-    // Restrict spawn origin to the red area (top-left edge)
-    // The previous spawn broad grid is removed to center the origin on the stripe
-    const startX = (i % 5) * (SW * 0.05); // Spread along the top edge of the stripe
-    const startY = (Math.floor(i / 5)) * (SH * 0.1); // Spread down the left edge of the stripe
-
-    // New Diagonal Trajectory: Moves from top-left (stripe) toward bottom-right
-    const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [startX, SW + 100] });
-    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [startY, SH + 100] });
+    // Uniform spawn from top-left (red stripe zone)
+    const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [d.offX, SW + 50] });
+    const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [d.offY, SH + 50] });
     
     // Slow star-only rotation
     const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '120deg'] });
 
-    // Fade timing: invisible -> fade in at ~450ms -> solid -> fade out
+    // Fade in at 450ms (~0.2 into anim)
     const opac = anim.interpolate({ 
         inputRange: [0, 0.18, 0.25, 0.85, 1], 
         outputRange: [0, 0, 1, 1, 0] 
@@ -137,13 +133,11 @@ const StarParticle = ({ i }) => {
             opacity: opac, 
             transform: [{ translateX: tX }, { translateY: tY }] 
         }}>
-            {/* --- Apply 90-degree counter-clockwise rotation to trail --- */}
-            {/* Previous: -135deg. Adding 90 counter-clockwise: -135 + 90 = -45deg */}
             <Image 
                 source={{ uri: IMG_TRAIL }} 
                 style={{ 
                     position: "absolute", 
-                    left: -5, // Keeping the -5,-5 offset
+                    left: -5, 
                     top: -5, 
                     width: '100%', 
                     height: '100%', 
@@ -151,13 +145,12 @@ const StarParticle = ({ i }) => {
                 }} 
                 resizeMode="contain" 
             />
-            {/* Star with gold tint */}
             <Animated.Image 
                 source={{ uri: IMG_STAR }} 
                 style={{ 
                     width: '100%', 
                     height: '100%', 
-                    tintColor: "#CC9900", // Keeping the darker gold tint
+                    tintColor: "#CC9900", 
                     transform: [{ rotate: rot }] 
                 }} 
                 resizeMode="contain" 
@@ -210,8 +203,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vMeteorWideRedStripe")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vMeteorWideRedStripe" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFinalSync")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFinalSync" })]; 
             } 
             return res; 
         })); 
