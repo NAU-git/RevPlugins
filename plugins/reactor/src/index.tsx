@@ -26,7 +26,7 @@ const gO = new Animated.Value(0),
       P_COUNT = 25, 
       P_POOL = Array.from({ length: P_COUNT }, (_, i) => ({ 
         x: (Math.random() * 1.1 - 0.05) * SW, 
-        s: 16 + Math.random() * 8, 
+        s: 18 + Math.random() * 10, // REVERTED: Global size back to original
         d: 2000 + Math.random() * 1500, 
         hd: 6000 + Math.random() * 2000,
         sd: 3400 + Math.random() * 800, 
@@ -39,8 +39,7 @@ const gO = new Animated.Value(0),
         hStep: 45 + Math.random() * 55,
         spawnX: (Math.random() * 30) - 15, 
         spawnY: (i / P_COUNT) * (SH * 0.85) - 50,
-        // Gap is now a multiplier based on the star's specific size
-        gapMult: 0.9 + Math.random() * 0.4 
+        gapMult: 1.1 + Math.random() * 0.4 
       }));
 
 const Particle = ({ i }) => { 
@@ -115,28 +114,27 @@ const StarParticle = ({ i }) => {
     const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [d.spawnY, d.spawnY + (SH * 0.45)] });
     const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '220deg'] });
 
-    // Gradual fade in
     const starOpac = anim.interpolate({ 
         inputRange: [0, 0.1, 0.85, 1], 
         outputRange: [0, 1, 1, 0] 
     });
 
-    // Trail fades out 200ms before star (approx 0.06 difference on anim scale)
     const trailOpac = anim.interpolate({ 
         inputRange: [0, 0.1, 0.79, 0.82, 1], 
         outputRange: [0, 1, 1, 0, 0] 
     });
 
-    // Gap is now tied to d.s (size)
-    const dynamicGap = d.s * d.gapMult;
+    // Star size is reduced locally by 15% here, without affecting P_POOL.s
+    const starS = d.s * 0.85;
+    const dynamicGap = starS * d.gapMult;
 
     return (
         <Animated.View style={{ 
             position: "absolute", 
             left: 0, 
             top: 0, 
-            width: d.s * 1.8, 
-            height: d.s * 1.8, 
+            width: starS * 1.8, 
+            height: starS * 1.8, 
             transform: [{ translateX: tX }, { translateY: tY }] 
         }}>
             <Animated.Image 
@@ -211,8 +209,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vSizeProportional")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vSizeProportional" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vSizeRevert")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vSizeRevert" })]; 
             } 
             return res; 
         })); 
@@ -222,4 +220,3 @@ export default {
         clearTimeout(sT); clearTimeout(fT); aID = null; 
     } 
 };
-
