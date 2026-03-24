@@ -26,7 +26,7 @@ const gO = new Animated.Value(0),
       P_COUNT = 25, 
       P_POOL = Array.from({ length: P_COUNT }, (_, i) => ({ 
         x: (Math.random() * 1.1 - 0.05) * SW, 
-        s: 18 + Math.random() * 10, // REVERTED: Global size back to original
+        s: 18 + Math.random() * 10, 
         d: 2000 + Math.random() * 1500, 
         hd: 6000 + Math.random() * 2000,
         sd: 3400 + Math.random() * 800, 
@@ -42,6 +42,7 @@ const gO = new Animated.Value(0),
         gapMult: 1.1 + Math.random() * 0.4 
       }));
 
+// REVERTED: Confetti now falls from top to bottom again
 const Particle = ({ i }) => { 
     const d = P_POOL[i], aV = React.useRef(new Animated.Value(-100)).current, rV = React.useRef(new Animated.Value(0)).current, hV = React.useRef(new Animated.Value(0)).current; 
     React.useEffect(() => { 
@@ -65,6 +66,7 @@ const Particle = ({ i }) => {
     return <Animated.View style={{ position: "absolute", left: d.x, top: 0, width: d.s, height: d.s, opacity: d.o, transform: [{ translateY: aV }, { translateX: hX }, { rotate: rot }] }}><Image source={{ uri: IMG_CONFETTI }} style={{ width: '100%', height: '100%', tintColor: d.c }} resizeMode="contain" /></Animated.View>; 
 };
 
+// REVERTED: Hearts float from bottom to top again
 const HeartParticle = ({ i }) => {
     const d = P_POOL[i], aV = React.useRef(new Animated.Value(SH + 50)).current, hV = React.useRef(new Animated.Value(0)).current;
     React.useEffect(() => {
@@ -124,7 +126,6 @@ const StarParticle = ({ i }) => {
         outputRange: [0, 1, 1, 0, 0] 
     });
 
-    // Star size is reduced locally by 15% here, without affecting P_POOL.s
     const starS = d.s * 0.85;
     const dynamicGap = starS * d.gapMult;
 
@@ -209,8 +210,8 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vSizeRevert")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vSizeRevert" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFixedConfetti")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFixedConfetti" })]; 
             } 
             return res; 
         })); 
@@ -220,3 +221,4 @@ export default {
         clearTimeout(sT); clearTimeout(fT); aID = null; 
     } 
 };
+
