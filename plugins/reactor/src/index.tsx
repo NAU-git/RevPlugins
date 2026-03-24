@@ -42,54 +42,25 @@ const gO = new Animated.Value(0),
         gapMult: 1.1 + Math.random() * 0.4 
       }));
 
-// REVERTED: Confetti now falls from top to bottom again
 const Particle = ({ i }) => { 
     const d = P_POOL[i], aV = React.useRef(new Animated.Value(-100)).current, rV = React.useRef(new Animated.Value(0)).current, hV = React.useRef(new Animated.Value(0)).current; 
     React.useEffect(() => { 
         let m = true; 
-        const r = (dy = 0) => { 
-            if (!m) return; 
-            aV.setValue(-100); rV.setValue(0); hV.setValue(0); 
-            Animated.parallel([
-                Animated.timing(aV, { toValue: SH + 100, duration: d.d, delay: dy, useNativeDriver: true, easing: Easing.linear }), 
-                Animated.timing(rV, { toValue: 1, duration: d.d, delay: dy, useNativeDriver: true, easing: Easing.linear }), 
-                Animated.sequence([
-                    Animated.timing(hV, { toValue: 1, duration: d.d / 2, delay: dy, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }), 
-                    Animated.timing(hV, { toValue: 0, duration: d.d / 2, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })
-                ])
-            ]).start(({ finished }) => { if (finished && m) r(0); }); 
-        }; 
-        r(d.iD); 
-        return () => { m = false; aV.stopAnimation(); rV.stopAnimation(); hV.stopAnimation(); }; 
+        const r = (dy = 0) => { if (!m) return; aV.setValue(-100); rV.setValue(0); hV.setValue(0); Animated.parallel([Animated.timing(aV, { toValue: SH + 100, duration: d.d, delay: dy, useNativeDriver: true, easing: Easing.linear }), Animated.timing(rV, { toValue: 1, duration: d.d, delay: dy, useNativeDriver: true, easing: Easing.linear }), Animated.sequence([Animated.timing(hV, { toValue: 1, duration: d.d / 2, delay: dy, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }), Animated.timing(hV, { toValue: 0, duration: d.d / 2, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })])]).start(({ finished }) => { if (finished && m) r(0); }); }; 
+        r(d.iD); return () => { m = false; aV.stopAnimation(); rV.stopAnimation(); hV.stopAnimation(); }; 
     }, []); 
     const rot = rV.interpolate({ inputRange: [0, 1], outputRange: [`${d.rS}deg`, `${d.rS + d.rD}deg`] }), hX = hV.interpolate({ inputRange: [0, 1], outputRange: [0, d.hS] }); 
     return <Animated.View style={{ position: "absolute", left: d.x, top: 0, width: d.s, height: d.s, opacity: d.o, transform: [{ translateY: aV }, { translateX: hX }, { rotate: rot }] }}><Image source={{ uri: IMG_CONFETTI }} style={{ width: '100%', height: '100%', tintColor: d.c }} resizeMode="contain" /></Animated.View>; 
 };
 
-// REVERTED: Hearts float from bottom to top again
 const HeartParticle = ({ i }) => {
     const d = P_POOL[i], aV = React.useRef(new Animated.Value(SH + 50)).current, hV = React.useRef(new Animated.Value(0)).current;
     React.useEffect(() => {
         let m = true;
-        const r = (dy = 0) => {
-            if (!m) return;
-            aV.setValue(SH + 50); hV.setValue(0);
-            Animated.parallel([
-                Animated.timing(aV, { toValue: -150, duration: d.hd, delay: dy, useNativeDriver: true, easing: Easing.out(Easing.quad) }),
-                Animated.sequence([
-                    Animated.timing(hV, { toValue: 1, duration: d.hd / 8, delay: dy, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
-                    Animated.timing(hV, { toValue: -1, duration: d.hd / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
-                    Animated.timing(hV, { toValue: 1, duration: d.hd / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
-                    Animated.timing(hV, { toValue: -1, duration: d.hd / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
-                    Animated.timing(hV, { toValue: 0, duration: d.hd / 8, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })
-                ])
-            ]).start(({ finished }) => { if (finished && m) r(0); });
-        };
-        r(d.iD);
-        return () => { m = false; aV.stopAnimation(); hV.stopAnimation(); };
+        const r = (dy = 0) => { if (!m) return; aV.setValue(SH + 50); hV.setValue(0); Animated.parallel([Animated.timing(aV, { toValue: -150, duration: d.hd, delay: dy, useNativeDriver: true, easing: Easing.out(Easing.quad) }), Animated.sequence([Animated.timing(hV, { toValue: 1, duration: d.hd / 8, delay: dy, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }), Animated.timing(hV, { toValue: -1, duration: d.hd / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }), Animated.timing(hV, { toValue: 1, duration: d.hd / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }), Animated.timing(hV, { toValue: -1, duration: d.hd / 4, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }), Animated.timing(hV, { toValue: 0, duration: d.hd / 8, useNativeDriver: true, easing: Easing.inOut(Easing.sin) })])]).start(({ finished }) => { if (finished && m) r(0); }); };
+        r(d.iD); return () => { m = false; aV.stopAnimation(); hV.stopAnimation(); };
     }, []);
-    const hX = hV.interpolate({ inputRange: [-1, 1], outputRange: [-d.hStep, d.hStep] }), 
-          opac = aV.interpolate({ inputRange: [-100, 50, SH - 50, SH + 50], outputRange: [0, d.o, d.o, 0] });
+    const hX = hV.interpolate({ inputRange: [-1, 1], outputRange: [-d.hStep, d.hStep] }), opac = aV.interpolate({ inputRange: [-100, 50, SH - 50, SH + 50], outputRange: [0, d.o, d.o, 0] });
     return <Animated.View style={{ position: "absolute", left: d.x, top: 0, width: d.s, height: d.s, opacity: opac, transform: [{ translateY: aV }, { translateX: hX }] }}><Image source={{ uri: IMG_HEART }} style={{ width: '100%', height: '100%', tintColor: activeColor }} resizeMode="contain" /></Animated.View>;
 };
 
@@ -97,71 +68,23 @@ const StarParticle = ({ i }) => {
     const d = P_POOL[i], anim = React.useRef(new Animated.Value(0)).current;
     React.useEffect(() => {
         let m = true;
-        const r = (dy = 0) => {
-            if (!m) return;
-            anim.setValue(0);
-            Animated.timing(anim, { 
-                toValue: 1, 
-                duration: d.sd, 
-                delay: dy, 
-                useNativeDriver: true, 
-                easing: Easing.bezier(0.2, 0.9, 0.4, 1) 
-            }).start(({ finished }) => { if (finished && m) r(0); });
-        };
-        r(d.iD);
-        return () => { m = false; anim.stopAnimation(); };
+        const r = (dy = 0) => { if (!m) return; anim.setValue(0); Animated.timing(anim, { toValue: 1, duration: d.sd, delay: dy, useNativeDriver: true, easing: Easing.bezier(0.2, 0.9, 0.4, 1) }).start(({ finished }) => { if (finished && m) r(0); }); };
+        r(d.iD); return () => { m = false; anim.stopAnimation(); };
     }, []);
 
     const tX = anim.interpolate({ inputRange: [0, 1], outputRange: [d.spawnX, SW + 100] });
     const tY = anim.interpolate({ inputRange: [0, 1], outputRange: [d.spawnY, d.spawnY + (SH * 0.45)] });
     const rot = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '220deg'] });
-
-    const starOpac = anim.interpolate({ 
-        inputRange: [0, 0.1, 0.85, 1], 
-        outputRange: [0, 1, 1, 0] 
-    });
-
-    const trailOpac = anim.interpolate({ 
-        inputRange: [0, 0.1, 0.79, 0.82, 1], 
-        outputRange: [0, 1, 1, 0, 0] 
-    });
+    const starOpac = anim.interpolate({ inputRange: [0, 0.1, 0.85, 1], outputRange: [0, 1, 1, 0] });
+    const trailOpac = anim.interpolate({ inputRange: [0, 0.1, 0.79, 0.82, 1], outputRange: [0, 1, 1, 0, 0] });
 
     const starS = d.s * 0.85;
     const dynamicGap = starS * d.gapMult;
 
     return (
-        <Animated.View style={{ 
-            position: "absolute", 
-            left: 0, 
-            top: 0, 
-            width: starS * 1.8, 
-            height: starS * 1.8, 
-            transform: [{ translateX: tX }, { translateY: tY }] 
-        }}>
-            <Animated.Image 
-                source={{ uri: IMG_TRAIL }} 
-                style={{ 
-                    position: "absolute", 
-                    left: -dynamicGap, 
-                    top: -dynamicGap, 
-                    width: '100%', 
-                    height: '100%', 
-                    opacity: trailOpac,
-                    transform: [{ rotate: '-45deg' }] 
-                }} 
-                resizeMode="contain" 
-            />
-            <Animated.Image 
-                source={{ uri: IMG_STAR }} 
-                style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    tintColor: "#EAB308", 
-                    opacity: starOpac,
-                    transform: [{ rotate: rot }] 
-                }} 
-                resizeMode="contain" 
-            />
+        <Animated.View style={{ position: "absolute", left: 0, top: 0, width: starS * 1.8, height: starS * 1.8, transform: [{ translateX: tX }, { translateY: tY }] }}>
+            <Animated.Image source={{ uri: IMG_TRAIL }} style={{ position: "absolute", left: -dynamicGap, top: -dynamicGap, width: '100%', height: '100%', opacity: trailOpac, transform: [{ rotate: '-45deg' }] }} resizeMode="contain" />
+            <Animated.Image source={{ uri: IMG_STAR }} style={{ width: '100%', height: '100%', tintColor: "#EAB308", opacity: starOpac, transform: [{ rotate: rot }] }} resizeMode="contain" />
         </Animated.View>
     );
 };
@@ -169,12 +92,7 @@ const StarParticle = ({ i }) => {
 const Overlay = () => { 
     const [, fU] = React.useReducer(x => x + 1, 0); 
     React.useEffect(() => { const i = setInterval(() => fU(), 200); return () => clearInterval(i); }, []); 
-    React.useEffect(() => { 
-        if (SelectedChannelStore?.getChannelId() !== aID && aID !== null) { 
-            Animated.timing(gO, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => { aID = null; if (sT) clearTimeout(sT); if (fT) clearTimeout(fT); }); 
-        } 
-    }, [SelectedChannelStore?.getChannelId()]); 
-
+    React.useEffect(() => { if (SelectedChannelStore?.getChannelId() !== aID && aID !== null) { Animated.timing(gO, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => { aID = null; if (sT) clearTimeout(sT); if (fT) clearTimeout(fT); }); } }, [SelectedChannelStore?.getChannelId()]); 
     if (SelectedChannelStore?.getChannelId() !== aID) return null; 
     return (
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 999, opacity: gO }]}>
@@ -190,14 +108,11 @@ const Overlay = () => {
 const trigger = (cid, emo) => { 
     const name = emo?.name || emo?.id;
     if (!name || Date.now() - lastBurst < 4000) return;
-
     if (HEART_MAP[name] || PARTY_EMOJIS.includes(name) || STAR_EMOJIS.includes(name)) {
-        lastBurst = Date.now(); 
-        aID = cid; 
+        lastBurst = Date.now(); aID = cid; 
         if (STAR_EMOJIS.includes(name)) activeType = "shooting_star";
         else activeType = HEART_MAP[name] ? "heart" : "party";
         if (HEART_MAP[name]) activeColor = HEART_MAP[name];
-
         gO.setValue(1); 
         if (sT) clearTimeout(sT); if (fT) clearTimeout(fT); 
         fT = setTimeout(() => Animated.timing(gO, { toValue: 0, duration: 1000, useNativeDriver: true, easing: Easing.linear }).start(), 4350); 
@@ -210,15 +125,12 @@ export default {
         if (MessageStore) patches.push(after("addReaction", MessageStore, (args) => trigger(args[0], args[2]))); 
         if (FluxDispatcher) FluxDispatcher.subscribe("MESSAGE_REACTION_ADD", (e) => trigger(e.channelId, e.emoji)); 
         if (GeneralModule?.View) patches.push(after("render", GeneralModule.View, (a, res) => { 
-            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFixedConfetti")) { 
-                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFixedConfetti" })]; 
+            if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout && !React.Children.toArray(res.props.children).some(c => c?.key === "reactor-vFixPosition")) { 
+                res.props.children = [...React.Children.toArray(res.props.children), React.createElement(Overlay, { key: "reactor-vFixPosition" })]; 
             } 
             return res; 
         })); 
     }, 
-    onUnload: () => { 
-        patches.forEach(p => p?.()); 
-        clearTimeout(sT); clearTimeout(fT); aID = null; 
-    } 
+    onUnload: () => { patches.forEach(p => p?.()); clearTimeout(sT); clearTimeout(fT); aID = null; } 
 };
 
