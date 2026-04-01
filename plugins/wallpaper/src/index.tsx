@@ -3,14 +3,14 @@ import { React, ReactNative } from "@vendetta/metro/common";
 import { findByProps } from "@vendetta/metro";
 
 const { View, Image, StyleSheet } = ReactNative;
-const FlashListModule = findByProps("FlashList");
+const GeneralModule = findByProps("View");
 
 const BG_URL = "https://raw.githubusercontent.com/n0t-a-username/revenge-themes/refs/heads/main/Images/DiscordLink.jpg";
 
 const ChatBackground = () => (
     <Image 
         source={{ uri: BG_URL }} 
-        style={[StyleSheet.absoluteFill, { zIndex: -1, opacity: 0.4 }]} 
+        style={[StyleSheet.absoluteFill, { zIndex: -1, opacity: 0.5 }]} 
         resizeMode="cover" 
     />
 );
@@ -19,28 +19,33 @@ let patches = [];
 
 export default { 
     onLoad: () => { 
-        if (FlashListModule?.FlashList) {
-            // We patch the prototype to catch all instances (Chat, Pins, etc.)
-            patches.push(after("render", FlashListModule.FlashList.prototype, function(args, res) {
-                // Instead of wrapping 'res', we inject into the list's own container props
-                if (res?.props) {
-                    const originalRenderContainer = res.props.renderContentContainer;
+        if (GeneralModule?.View) {
+            patches.push(after("render", GeneralModule.View, (args, res) => { 
+                const style = StyleSheet.flatten(res?.props?.style);
 
-                    // We wrap the content container specifically. 
-                    // This stays INSIDE the RecyclerListView, avoiding the StickyContainer crash.
-                    res.props.renderContentContainer = (props, children) => {
-                        const container = originalRenderContainer ? originalRenderContainer(props, children) : <View {...props}>{children}</View>;
-                        
-                        return React.cloneElement(container, {
-                            children: [
-                                <ChatBackground key="chat-bg-layer" />,
-                                ...React.Children.toArray(container.props.children)
-                            ]
-                        });
-                    };
-                }
-                return res;
-            }));
+                // TARGETING LOGIC:
+                // 1. Must be flex: 1 (Main containers)
+                // 2. Must have onLayout (Dynamic screens)
+                // 3. EXCLUDE components with backgroundColors (Like headers/popups)
+                // 4. EXCLUDE small heights (To avoid catching the top bar again)
+                if (
+                    res?.props && 
+                    style?.flex === 1 && 
+                    res.props.onLayout && 
+                    !style?.backgroundColor &&
+                    !res.props.accessibilityLabel
+                ) {
+                    const children = React.Children.toArray(res.props.children);
+                    
+                    if (!children.some(c => c?.key === "chat-bg-layer-v2")) { 
+                        res.props.children = [
+                            React.createElement(ChatBackground, { key: "chat-bg-layer-v2" }),
+                            ...children
+                        ]; 
+                    } 
+                } 
+                return res; 
+            })); 
         }
     }, 
     onUnload: () => { 
