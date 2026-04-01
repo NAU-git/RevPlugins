@@ -3,7 +3,9 @@ import { React, ReactNative } from "@vendetta/metro/common";
 import { findByProps } from "@vendetta/metro";
 
 const { View, Image, StyleSheet } = ReactNative;
-const GeneralModule = findByProps("View");
+
+// We look for the FlashList or the specific Message list props
+const FlashListModule = findByProps("FlashList");
 
 const BG_URL = "https://raw.githubusercontent.com/n0t-a-username/revenge-themes/refs/heads/main/Images/DiscordLink.jpg";
 
@@ -15,7 +17,7 @@ const ChatBackground = () => (
             width: "100%",
             height: "100%",
             zIndex: -1,
-            opacity: 0.5
+            opacity: 0.4
         }} 
         resizeMode="cover" 
     />
@@ -25,26 +27,26 @@ let patches = [];
 
 export default { 
     onLoad: () => { 
-        if (GeneralModule?.View) {
-            patches.push(after("render", GeneralModule.View, (args, res) => { 
-                // We're looking for the container that specifically has the message list content
-                // usually identified by having flex: 1 and a specific pointerEvents or onLayout setup
-                if (res?.props && 
-                    StyleSheet.flatten(res.props.style)?.flex === 1 && 
-                    res.props.onLayout &&
-                    !res.props.accessibilityLabel // Avoid headers/top bars
-                ) {
-                    const children = React.Children.toArray(res.props.children);
+        // Hooking into FlashList ensures we are in the actual message area
+        if (FlashListModule?.FlashList) {
+            patches.push(after("render", FlashListModule.FlashList.prototype, (args, res) => {
+                // If the list exists, we wrap it or inject the background into its container
+                if (res?.props) {
+                    const originalChildren = res.props.children;
                     
-                    if (!children.some(c => c?.key === "chat-bg-layer-fixed")) { 
-                        res.props.children = [
-                            React.createElement(ChatBackground, { key: "chat-bg-layer-fixed" }),
-                            ...children
-                        ]; 
-                    } 
-                } 
-                return res; 
-            })); 
+                    // Check to avoid double rendering
+                    if (res.props.className !== "chat-bg-applied") {
+                        res.props.className = "chat-bg-applied";
+                        res.props.children = (
+                            <View style={{ flex: 1 }}>
+                                <ChatBackground />
+                                {originalChildren}
+                            </View>
+                        );
+                    }
+                }
+                return res;
+            }));
         }
     }, 
     onUnload: () => { 
