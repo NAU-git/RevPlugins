@@ -1,57 +1,66 @@
 import { after } from "@vendetta/patcher";
 import { React, ReactNative } from "@vendetta/metro/common";
-import { findByProps } from "@vendetta/metro";
+import { findByProps, findByDisplayName } from "@vendetta/metro";
 
-const { View, Image, StyleSheet, Dimensions } = ReactNative;
+const { View, Image, StyleSheet } = ReactNative;
+
+// Direct targets for the chat area
+const MessagesWrapper = findByProps("MessagesWrapperContainer") || findByProps("MessagesWrapper");
 const GeneralModule = findByProps("View");
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const BG_URL = "https://raw.githubusercontent.com/n0t-a-username/revenge-themes/refs/heads/main/Images/DiscordLink.jpg";
 
-// Defined as a standalone Background Element
 const BackgroundElement = () => (
-    <View 
-        pointerEvents="none" 
-        style={[StyleSheet.absoluteFill, { zIndex: -1 }]}
-    >
-        <Image 
-            source={{ uri: BG_URL }} 
-            style={{ width: "100%", height: "100%", opacity: 0.5 }} 
-            resizeMode="cover" 
-        />
-    </View>
+    <Image 
+        source={{ uri: BG_URL }} 
+        style={[StyleSheet.absoluteFill, { zIndex: -1, opacity: 0.5 }]} 
+        resizeMode="cover" 
+    />
 );
 
 let patches = [];
 
 export default { 
     onLoad: () => { 
-        if (!GeneralModule?.View) return;
-
-        patches.push(after("render", GeneralModule.View, (args, res) => { 
-            if (!res?.props) return res;
-
-            const style = StyleSheet.flatten(res.props.style);
-            
-            // Only target main containers (flex: 1)
-            if (style?.flex === 1 && res.props.onLayout && !res.props.accessibilityLabel) {
+        // 1. THE CHAT KILL-SHOT: Target the message wrapper specifically
+        if (MessagesWrapper) {
+            patches.push(after("default", MessagesWrapper, (args, res) => {
+                if (!res?.props) return res;
                 
-                // FORCE TRANSPARENCY: If this is the chat container, 
-                // any solid background color here will hide our image.
-                if (style.backgroundColor) {
-                    res.props.style = [res.props.style, { backgroundColor: "transparent" }];
-                }
-
                 const children = React.Children.toArray(res.props.children);
-                if (!children.some(c => c?.key === "bg-element-layer")) {
+                if (!children.some(c => c?.key === "chat-bg-final")) {
                     res.props.children = [
-                        <BackgroundElement key="bg-element-layer" />,
+                        <BackgroundElement key="chat-bg-final" />,
                         ...children
                     ];
+                    // Force the container to be transparent so our image shows through
+                    res.props.style = [res.props.style, { backgroundColor: "transparent" }];
                 }
-            } 
-            return res; 
-        })); 
+                return res;
+            }));
+        }
+
+        // 2. REFINED GLOBAL PATCH: Only hit actual "Screens"
+        if (GeneralModule?.View) {
+            patches.push(after("render", GeneralModule.View, (args, res) => {
+                const props = res?.props;
+                if (!props || props.accessibilityLabel || props.role) return res;
+
+                const style = StyleSheet.flatten(props.style);
+                
+                // Only inject if it's a full-screen-ish view (ignoring small header bars)
+                if (style?.flex === 1 && props.onLayout) {
+                    const children = React.Children.toArray(props.children);
+                    if (!children.some(c => c?.key === "global-bg-layer")) {
+                        props.children = [
+                            <BackgroundElement key="global-bg-layer" />,
+                            ...children
+                        ];
+                    }
+                }
+                return res;
+            }));
+        }
     }, 
     onUnload: () => { 
         patches.forEach(p => p?.()); 
