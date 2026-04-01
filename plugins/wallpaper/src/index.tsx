@@ -3,8 +3,6 @@ import { React, ReactNative } from "@vendetta/metro/common";
 import { findByProps } from "@vendetta/metro";
 
 const { View, Image, StyleSheet } = ReactNative;
-
-// We look for the FlashList or the specific Message list props
 const FlashListModule = findByProps("FlashList");
 
 const BG_URL = "https://raw.githubusercontent.com/n0t-a-username/revenge-themes/refs/heads/main/Images/DiscordLink.jpg";
@@ -12,13 +10,7 @@ const BG_URL = "https://raw.githubusercontent.com/n0t-a-username/revenge-themes/
 const ChatBackground = () => (
     <Image 
         source={{ uri: BG_URL }} 
-        style={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            zIndex: -1,
-            opacity: 0.4
-        }} 
+        style={[StyleSheet.absoluteFill, { zIndex: -1, opacity: 0.4 }]} 
         resizeMode="cover" 
     />
 );
@@ -27,23 +19,25 @@ let patches = [];
 
 export default { 
     onLoad: () => { 
-        // Hooking into FlashList ensures we are in the actual message area
         if (FlashListModule?.FlashList) {
-            patches.push(after("render", FlashListModule.FlashList.prototype, (args, res) => {
-                // If the list exists, we wrap it or inject the background into its container
+            // We patch the prototype to catch all instances (Chat, Pins, etc.)
+            patches.push(after("render", FlashListModule.FlashList.prototype, function(args, res) {
+                // Instead of wrapping 'res', we inject into the list's own container props
                 if (res?.props) {
-                    const originalChildren = res.props.children;
-                    
-                    // Check to avoid double rendering
-                    if (res.props.className !== "chat-bg-applied") {
-                        res.props.className = "chat-bg-applied";
-                        res.props.children = (
-                            <View style={{ flex: 1 }}>
-                                <ChatBackground />
-                                {originalChildren}
-                            </View>
-                        );
-                    }
+                    const originalRenderContainer = res.props.renderContentContainer;
+
+                    // We wrap the content container specifically. 
+                    // This stays INSIDE the RecyclerListView, avoiding the StickyContainer crash.
+                    res.props.renderContentContainer = (props, children) => {
+                        const container = originalRenderContainer ? originalRenderContainer(props, children) : <View {...props}>{children}</View>;
+                        
+                        return React.cloneElement(container, {
+                            children: [
+                                <ChatBackground key="chat-bg-layer" />,
+                                ...React.Children.toArray(container.props.children)
+                            ]
+                        });
+                    };
                 }
                 return res;
             }));
