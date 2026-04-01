@@ -21,25 +21,22 @@ export default {
     onLoad: () => { 
         if (GeneralModule?.View) {
             patches.push(after("render", GeneralModule.View, (args, res) => { 
-                const style = StyleSheet.flatten(res?.props?.style);
+                const props = res?.props;
+                if (!props) return res;
 
-                // TARGETING LOGIC:
-                // 1. Must be flex: 1 (Main containers)
-                // 2. Must have onLayout (Dynamic screens)
-                // 3. EXCLUDE components with backgroundColors (Like headers/popups)
-                // 4. EXCLUDE small heights (To avoid catching the top bar again)
-                if (
-                    res?.props && 
-                    style?.flex === 1 && 
-                    res.props.onLayout && 
-                    !style?.backgroundColor &&
-                    !res.props.accessibilityLabel
-                ) {
-                    const children = React.Children.toArray(res.props.children);
+                const style = StyleSheet.flatten(props.style);
+
+                // We target the chat by looking for the message list container 
+                // and the main flex:1 views that wrap the UI.
+                const isChatContainer = props.onLayout && !props.accessibilityLabel && style?.flex === 1;
+                const isMessageList = props.className?.includes("message") || props.data;
+
+                if (isChatContainer || isMessageList) {
+                    const children = React.Children.toArray(props.children);
                     
-                    if (!children.some(c => c?.key === "chat-bg-layer-v2")) { 
+                    if (!children.some(c => c?.key === "chat-bg-layer-final")) { 
                         res.props.children = [
-                            React.createElement(ChatBackground, { key: "chat-bg-layer-v2" }),
+                            React.createElement(ChatBackground, { key: "chat-bg-layer-final" }),
                             ...children
                         ]; 
                     } 
