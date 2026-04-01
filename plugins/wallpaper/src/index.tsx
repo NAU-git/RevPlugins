@@ -1,10 +1,11 @@
 import { after } from "@vendetta/patcher";
 import { React, ReactNative } from "@vendetta/metro/common";
-import { findByProps } from "@vendetta/metro";
+import { findByProps, findByDisplayName } from "@vendetta/metro";
 
 const { View, Image, StyleSheet } = ReactNative;
 const GeneralModule = findByProps("View");
-const MessagesWrapper = findByProps("MessagesWrapper") || findByProps("MessageList");
+// Target the internal message list components
+const Messages = findByProps("Messages") || findByDisplayName("Messages", false);
 
 const BG_URL = "https://raw.githubusercontent.com/n0t-a-username/revenge-themes/refs/heads/main/Images/DiscordLink.jpg";
 
@@ -18,38 +19,37 @@ const ChatBackground = () => (
 
 let patches = [];
 
-function injectBackground(res, key) {
-    if (!res?.props) return;
-    const children = React.Children.toArray(res.props.children);
-    if (!children.some(c => c?.key === key)) {
-        res.props.children = [
-            React.createElement(ChatBackground, { key }),
-            ...children
-        ];
-    }
-}
-
 export default { 
-    onLoad: () => {
-        // 1. Target the Messages area specifically (The "Heavy Hitter")
-        if (MessagesWrapper) {
-            patches.push(after("default", MessagesWrapper, (args, res) => {
-                injectBackground(res, "chat-bg-main");
+    onLoad: () => { 
+        // 1. Target the actual Messages component - this is the "missing" chat area
+        if (Messages) {
+            patches.push(after("default", Messages, (args, res) => {
+                if (!res?.props) return res;
+                const children = React.Children.toArray(res.props.children);
+                if (!children.some(c => c?.key === "chat-bg-internal")) {
+                    res.props.children = [
+                        <ChatBackground key="chat-bg-internal" />,
+                        ...children
+                    ];
+                }
                 return res;
             }));
         }
 
-        // 2. Keep your preferred General View patch as the global backup
+        // 2. Your preferred General View patch as the global catch-all
         if (GeneralModule?.View) {
-            patches.push(after("render", GeneralModule.View, (args, res) => {
-                const style = StyleSheet.flatten(res?.props?.style);
-                
-                // Broad check for containers, but excluding things that are definitely not chat
-                if (res?.props && style?.flex === 1 && res.props.onLayout && !res.props.accessibilityLabel) {
-                    injectBackground(res, "chat-bg-fallback");
-                }
-                return res;
-            }));
+            patches.push(after("render", GeneralModule.View, (args, res) => { 
+                if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout) {
+                    const children = React.Children.toArray(res.props.children);
+                    if (!children.some(c => c?.key === "chat-bg-global")) { 
+                        res.props.children = [
+                            <ChatBackground key="chat-bg-global" />,
+                            ...children
+                        ]; 
+                    } 
+                } 
+                return res; 
+            })); 
         }
     }, 
     onUnload: () => { 
