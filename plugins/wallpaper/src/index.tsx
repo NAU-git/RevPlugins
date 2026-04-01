@@ -10,7 +10,13 @@ const BG_URL = "https://raw.githubusercontent.com/n0t-a-username/revenge-themes/
 const ChatBackground = () => (
     <Image 
         source={{ uri: BG_URL }} 
-        style={[StyleSheet.absoluteFill, { zIndex: -1, opacity: 0.6 }]} 
+        style={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            zIndex: -1,
+            opacity: 0.5
+        }} 
         resizeMode="cover" 
     />
 );
@@ -19,17 +25,20 @@ let patches = [];
 
 export default { 
     onLoad: () => { 
-        // We patch the main View render to find the chat container
         if (GeneralModule?.View) {
             patches.push(after("render", GeneralModule.View, (args, res) => { 
-                // We target the view that typically wraps the message list (flex: 1)
-                if (res?.props && StyleSheet.flatten(res.props.style)?.flex === 1 && res.props.onLayout) {
+                // We're looking for the container that specifically has the message list content
+                // usually identified by having flex: 1 and a specific pointerEvents or onLayout setup
+                if (res?.props && 
+                    StyleSheet.flatten(res.props.style)?.flex === 1 && 
+                    res.props.onLayout &&
+                    !res.props.accessibilityLabel // Avoid headers/top bars
+                ) {
                     const children = React.Children.toArray(res.props.children);
                     
-                    // Prevent duplicate injections
-                    if (!children.some(c => c?.key === "chat-bg-layer")) { 
+                    if (!children.some(c => c?.key === "chat-bg-layer-fixed")) { 
                         res.props.children = [
-                            React.createElement(ChatBackground, { key: "chat-bg-layer" }),
+                            React.createElement(ChatBackground, { key: "chat-bg-layer-fixed" }),
                             ...children
                         ]; 
                     } 
@@ -42,4 +51,3 @@ export default {
         patches.forEach(p => p?.()); 
     } 
 };
-
